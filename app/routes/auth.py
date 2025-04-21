@@ -87,7 +87,7 @@ def register():
 def login():
     """Login and receive JWT token"""
     data = request.get_json()
-      if not data or not data.get('email') or not data.get('password'):
+    if not data or not data.get('email') or not data.get('password'):
         return jsonify({"message": "Email and password required"}), 400
     
     user = User.query.filter_by(email=data['email'].lower()).first()
