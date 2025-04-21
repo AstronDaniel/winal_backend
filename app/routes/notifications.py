@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, current_app
-from app.utils.email_service import send_welcome_email, send_password_reset_email
+from app.utils.gmail_service import send_welcome_email, send_password_reset_email, send_order_confirmation
 from app.utils.validation import validate_email
 import traceback
 import os
@@ -81,4 +81,57 @@ def send_reset():
         print(f"Global error in password reset endpoint: {str(e)}")
         print(traceback.format_exc())
         current_app.logger.error(f"Global error in password reset endpoint: {str(e)}")
+        return jsonify({"message": "Internal server error", "error": str(e)}), 500
+
+@notifications_bp.route('/order-confirmation', methods=['POST'])
+def send_order_conf():
+    print("\n=== Order Confirmation Email Request ===")
+    try:
+        data = request.get_json()
+        print(f"Request data: {data}")
+        
+        if not data or not data.get('email') or not data.get('order_details'):
+            print("Error: Missing email or order details")
+            return jsonify({"message": "Email and order details are required"}), 400
+        
+        email = data['email']
+        order_details = data['order_details']
+        
+        # Validate email
+        if not validate_email(email):
+            print(f"Error: Invalid email format: {email}")
+            return jsonify({"message": "Invalid email format"}), 400
+        
+        # Validate order_details
+        required_fields = ['customer_name', 'order_id', 'total', 'items']
+        for field in required_fields:
+            if field not in order_details:
+                print(f"Error: Missing required field in order details: {field}")
+                return jsonify({"message": f"Missing required field in order details: {field}"}), 400
+        
+        try:
+            print(f"Sending order confirmation email to {email}")
+            
+            # For local development, simply log the email sending attempt
+            if os.environ.get('FLASK_ENV') == 'development':
+                print("\n=== DEVELOPMENT MODE: Order Confirmation Email ===")
+                print(f"To: {email}")
+                print(f"Order ID: {order_details['order_id']}")
+                print(f"Total: ${order_details['total']}")
+                print("=== End Development Mode Email ===\n")
+                return jsonify({"message": "Order confirmation email sent successfully (development mode)"}), 200
+            
+            # For production, send the actual email
+            send_order_confirmation(email, order_details)
+            print("Order confirmation email sent successfully")
+            return jsonify({"message": "Order confirmation email sent successfully"}), 200
+        except Exception as e:
+            print(f"Error sending order confirmation email: {str(e)}")
+            print(traceback.format_exc())
+            current_app.logger.error(f"Error sending order confirmation email: {str(e)}")
+            return jsonify({"message": "Failed to send order confirmation email", "error": str(e)}), 500
+    except Exception as e:
+        print(f"Global error in order confirmation endpoint: {str(e)}")
+        print(traceback.format_exc())
+        current_app.logger.error(f"Global error in order confirmation endpoint: {str(e)}")
         return jsonify({"message": "Internal server error", "error": str(e)}), 500 

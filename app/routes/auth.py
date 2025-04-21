@@ -14,7 +14,7 @@ from datetime import datetime, timedelta, timezone
 import bcrypt
 import os
 from app.utils.validation import validate_email
-from app.utils.email_service import send_password_reset_email, verify_code, clear_verification_code
+from app.utils.gmail_service import send_password_reset_email, verify_code, clear_verification_code
 
 auth_bp = Blueprint('auth', __name__)
 
