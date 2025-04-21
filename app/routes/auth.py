@@ -87,13 +87,12 @@ def register():
 def login():
     """Login and receive JWT token"""
     data = request.get_json()
-    
-    if not data or not data.get('email') or not data.get('password'):
+      if not data or not data.get('email') or not data.get('password'):
         return jsonify({"message": "Email and password required"}), 400
     
     user = User.query.filter_by(email=data['email'].lower()).first()
     
-    if not user or not bcrypt.checkpw(data['password'].encode('utf-8'), user.password.encode('utf-8')):
+    if not user or not user.verify_password(data['password']):
         return jsonify({"message": "Invalid credentials"}), 401
     
     access_token = create_access_token(
