@@ -14,7 +14,7 @@ from datetime import datetime, timedelta, timezone
 import bcrypt
 import os
 from app.utils.validation import validate_email
-from app.utils.email_service import send_password_reset_email
+from app.utils.email_service import send_password_reset_email, verify_code, clear_verification_code
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -211,16 +211,18 @@ def reset_password():
     if not user:
         return jsonify({"message": "Email not found"}), 404
     
-    # Verify the code (in a real implementation, check against stored code in database)
-    # This would be handled by the email service or a dedicated verification service
+    # Verify the code
     try:
-        # For this example, we'll assume verification is handled by frontend
-        # In production, verify against stored code with expiration check
+        if not verify_code(email, verification_code):
+            return jsonify({"message": "Invalid or expired verification code"}), 400
         
         # Update password
         hashed_password = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         user.password = hashed_password
         db.session.commit()
+        
+        # Clear the verification code after successful reset
+        clear_verification_code(email)
         
         return jsonify({"message": "Password reset successful"}), 200
     except Exception as e:

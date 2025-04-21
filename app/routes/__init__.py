@@ -2,6 +2,7 @@ from flask import Blueprint
 from .auth import auth_bp
 from .medications import medications_bp
 from .admin import admin_bp
+from .notifications import notifications_bp
 
 # Register blueprints
 def register_blueprints(app):
