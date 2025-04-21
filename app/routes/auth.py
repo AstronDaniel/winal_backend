@@ -142,24 +142,34 @@ def refresh_token():
 
 @auth_bp.route('/check-email', methods=['POST'])
 def check_email():
-    data = request.get_json()
-    
-    if not data or not data.get('email'):
-        return jsonify({"message": "Email is required"}), 400
-    
-    email = data['email'].lower()
-    
-    # Validate email format
-    if not validate_email(email):
-        return jsonify({"message": "Invalid email format"}), 400
-    
-    # Check if user exists
-    user = User.query.filter_by(email=email).first()
-    
-    if not user:
-        return jsonify({"message": "Email not found"}), 404
-    
-    return jsonify({"message": "Email exists"}), 200
+    try:
+        data = request.get_json()
+        print(f"Check-email request data: {data}")
+        
+        if not data or not data.get('email'):
+            print("Missing email in request data")
+            return jsonify({"message": "Email is required"}), 400
+        
+        email = data['email'].lower()
+        
+        # Validate email format
+        if not validate_email(email):
+            print(f"Invalid email format: {email}")
+            return jsonify({"message": "Invalid email format"}), 400
+        
+        # Check if user exists
+        user = User.query.filter_by(email=email).first()
+        
+        if not user:
+            print(f"Email not found: {email}")
+            return jsonify({"message": "Email not found"}), 404
+        
+        print(f"Email exists: {email}")
+        return jsonify({"message": "Email exists"}), 200
+    except Exception as e:
+        print(f"Error in check-email: {str(e)}")
+        current_app.logger.error(f"check-email error: {str(e)}")
+        return jsonify({"message": "Internal server error", "error": str(e)}), 500
 
 @auth_bp.route('/request-reset', methods=['POST'])
 def request_reset():

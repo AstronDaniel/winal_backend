@@ -31,9 +31,13 @@ def store_verification_code(email, code, expiry_minutes=15):
             'expires_at': expiry_time
         }
         
+        # Print for debugging
+        print(f"Stored verification code for {email}: {code}, expires at {expiry_time}")
         return True
     except Exception as e:
-        current_app.logger.error(f"Error storing verification code: {str(e)}")
+        print(f"Error storing verification code: {str(e)}")
+        if hasattr(current_app, 'logger'):
+            current_app.logger.error(f"Error storing verification code: {str(e)}")
         return False
 
 def verify_code(email, code):
@@ -59,83 +63,107 @@ def clear_verification_code(email):
 
 def send_password_reset_email(email, name=None):
     """Send password reset email with verification code"""
-    # Generate verification code
-    code = generate_verification_code()
-    
-    # Store in memory dictionary
-    if not store_verification_code(email, code):
-        raise Exception("Failed to store verification code")
-    
-    # Format name
-    user_name = name if name else "Valued Customer"
-    
-    # Create email content
-    html_content = f"""
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
-      <div style="text-align: center; margin-bottom: 20px;">
-        <h2 style="color: #2196F3;">Winal Drug Shop</h2>
-      </div>
-      <div>
-        <h3>Password Reset</h3>
-        <p>Dear {user_name},</p>
-        <p>You requested a password reset for your Winal Drug Shop account.</p>
-        <p>Your verification code is:</p>
-        <div style="background-color: #f5f5f5; padding: 15px; text-align: center; font-size: 24px; letter-spacing: 5px; border-radius: 5px; margin: 20px 0;">
-          <strong>{code}</strong>
-        </div>
-        <p>This code will expire in 15 minutes.</p>
-        <p>If you did not request a password reset, please ignore this email or contact our support team if you have concerns.</p>
-        <hr style="margin: 20px 0; border: none; border-top: 1px solid #e0e0e0;">
-        <p style="font-size: 12px; color: #757575; text-align: center;">
-          &copy; {datetime.now().year} Winal Drug Shop. All rights reserved.
-        </p>
-      </div>
-    </div>
-    """
-    
-    plain_content = f"""
-    Password Reset - Winal Drug Shop
-    
-    Dear {user_name},
-    
-    You requested a password reset for your Winal Drug Shop account.
-    
-    Your verification code is: {code}
-    
-    This code will expire in 15 minutes.
-    
-    If you did not request a password reset, please ignore this email or contact our support team if you have concerns.
-    
-    © {datetime.now().year} Winal Drug Shop. All rights reserved.
-    """
-    
     try:
-        # Create email message
-        message = Mail(
-            from_email=Email(FROM_EMAIL, FROM_NAME),
-            to_emails=To(email),
-            subject="Password Reset - Winal Drug Shop",
-            plain_text_content=Content("text/plain", plain_content),
-            html_content=HtmlContent(html_content)
-        )
+        # Generate verification code
+        code = generate_verification_code()
+        print(f"Generated verification code for {email}: {code}")
         
-        # Send email via SendGrid
+        # Store in memory dictionary
+        if not store_verification_code(email, code):
+            error_msg = "Failed to store verification code"
+            print(error_msg)
+            raise Exception(error_msg)
+        
+        # Format name
+        user_name = name if name else "Valued Customer"
+        
+        # Create email content
+        html_content = f"""
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 5px;">
+          <div style="text-align: center; margin-bottom: 20px;">
+            <h2 style="color: #2196F3;">Winal Drug Shop</h2>
+          </div>
+          <div>
+            <h3>Password Reset</h3>
+            <p>Dear {user_name},</p>
+            <p>You requested a password reset for your Winal Drug Shop account.</p>
+            <p>Your verification code is:</p>
+            <div style="background-color: #f5f5f5; padding: 15px; text-align: center; font-size: 24px; letter-spacing: 5px; border-radius: 5px; margin: 20px 0;">
+              <strong>{code}</strong>
+            </div>
+            <p>This code will expire in 15 minutes.</p>
+            <p>If you did not request a password reset, please ignore this email or contact our support team if you have concerns.</p>
+            <hr style="margin: 20px 0; border: none; border-top: 1px solid #e0e0e0;">
+            <p style="font-size: 12px; color: #757575; text-align: center;">
+              &copy; {datetime.now().year} Winal Drug Shop. All rights reserved.
+            </p>
+          </div>
+        </div>
+        """
+        
+        plain_content = f"""
+        Password Reset - Winal Drug Shop
+        
+        Dear {user_name},
+        
+        You requested a password reset for your Winal Drug Shop account.
+        
+        Your verification code is: {code}
+        
+        This code will expire in 15 minutes.
+        
+        If you did not request a password reset, please ignore this email or contact our support team if you have concerns.
+        
+        © {datetime.now().year} Winal Drug Shop. All rights reserved.
+        """
+        
         try:
-            sg = SendGridAPIClient(SENDGRID_API_KEY)
-            response = sg.send(message)
-            current_app.logger.info(f"Password reset email sent to {email}, status code: {response.status_code}")
+            # If we're in development or testing mode, just print the email
+            if os.environ.get('FLASK_ENV') == 'development' or os.environ.get('TESTING'):
+                print("\n=== PASSWORD RESET EMAIL (DEV MODE) ===")
+                print(f"To: {email}")
+                print(f"Subject: Password Reset - Winal Drug Shop")
+                print(f"Verification Code: {code}")
+                print("====================================\n")
+                return True
+                
+            # Create email message
+            message = Mail(
+                from_email=Email(FROM_EMAIL, FROM_NAME),
+                to_emails=To(email),
+                subject="Password Reset - Winal Drug Shop",
+                plain_text_content=Content("text/plain", plain_content),
+                html_content=HtmlContent(html_content)
+            )
+            
+            # Send email via SendGrid
+            try:
+                sg = SendGridAPIClient(SENDGRID_API_KEY)
+                response = sg.send(message)
+                print(f"Password reset email sent to {email}, status code: {response.status_code}")
+                if hasattr(current_app, 'logger'):
+                    current_app.logger.info(f"Password reset email sent to {email}, status code: {response.status_code}")
+            except Exception as e:
+                print(f"SendGrid error: {str(e)}, falling back to console logging")
+                if hasattr(current_app, 'logger'):
+                    current_app.logger.warning(f"SendGrid error: {str(e)}, falling back to console logging")
+                # Log the email content if SendGrid fails (for development)
+                print("\n=== PASSWORD RESET EMAIL (CONSOLE FALLBACK) ===")
+                print(f"To: {email}")
+                print(f"Subject: Password Reset - Winal Drug Shop")
+                print(f"Verification Code: {code}")
+                print("====================================\n")
+            
+            return True
         except Exception as e:
-            current_app.logger.warning(f"SendGrid error: {str(e)}, falling back to console logging")
-            # Log the email content if SendGrid fails (for development)
-            print("\n=== PASSWORD RESET EMAIL (CONSOLE FALLBACK) ===")
-            print(f"To: {email}")
-            print(f"Subject: Password Reset - Winal Drug Shop")
-            print(f"Verification Code: {code}")
-            print("====================================\n")
-        
-        return True
+            print(f"Error sending password reset email: {str(e)}")
+            if hasattr(current_app, 'logger'):
+                current_app.logger.error(f"Error sending password reset email: {str(e)}")
+            raise
     except Exception as e:
-        current_app.logger.error(f"Error sending password reset email: {str(e)}")
+        print(f"Global error in send_password_reset_email: {str(e)}")
+        if hasattr(current_app, 'logger'):
+            current_app.logger.error(f"Global error in send_password_reset_email: {str(e)}")
         raise
 
 def send_welcome_email(email, name):
