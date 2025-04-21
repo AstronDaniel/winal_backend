@@ -134,4 +134,9 @@ def send_order_conf():
         print(f"Global error in order confirmation endpoint: {str(e)}")
         print(traceback.format_exc())
         current_app.logger.error(f"Global error in order confirmation endpoint: {str(e)}")
-        return jsonify({"message": "Internal server error", "error": str(e)}), 500 
+        return jsonify({"message": "Internal server error", "error": str(e)}), 500
+
+@notifications_bp.route('/health-check', methods=['GET'])
+def health_check():
+    """Simple health check endpoint to verify API connectivity"""
+    return jsonify({"status": "ok", "message": "API is up and running"}), 200 
