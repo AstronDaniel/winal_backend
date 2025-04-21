@@ -220,10 +220,13 @@ def reset_password():
     
     if not user:
         return jsonify({"message": "Email not found"}), 404
-    
-    # Verify the code
+      # Verify the code
     try:
-        if not verify_code(email, verification_code):
+        print(f"Attempting to verify code: '{verification_code}' for email: '{email}'")
+        is_valid = verify_code(email, verification_code)
+        print(f"Code verification result: {is_valid}")
+        
+        if not is_valid:
             return jsonify({"message": "Invalid or expired verification code"}), 400
         
         # Update password
@@ -233,6 +236,7 @@ def reset_password():
         
         # Clear the verification code after successful reset
         clear_verification_code(email)
+        print(f"Password reset successful for email: {email}")
         
         return jsonify({"message": "Password reset successful"}), 200
     except Exception as e:
