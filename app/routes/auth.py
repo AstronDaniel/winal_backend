@@ -63,10 +63,12 @@ def register():
             first_name=validated_data['first_name'],
             last_name=validated_data['last_name'],
             phone_number=validated_data.get('phone_number'),
-            date_of_birth=datetime.strptime(data['date_of_birth'], '%Y-%m-%d').date() if 'date_of_birth' in data else None
+            date_of_birth=validated_data.get('date_of_birth')
         )
         db.session.add(new_user)
-        db.session.commit()        # Generate tokens
+        db.session.commit()
+        
+        # Generate tokens
         access_token = create_access_token(identity=new_user.id)
         refresh_token = create_refresh_token(identity=new_user.id)
 
